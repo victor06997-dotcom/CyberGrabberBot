@@ -23,19 +23,20 @@ async def authorize(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"Usuario {new_id} autorizado correctamente.")
 
 async def download(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # ... (tu código de autorización se mantiene igual)
+    user_id = update.effective_user.id
+    # Verificación de seguridad: solo autorizados descargan
+    if not (is_authorized(user_id) or user_id == ADMIN_ID):
+        await update.message.reply_text("Acceso denegado. No estás autorizado para descargar.")
+        return
 
     url = update.message.text
     await update.message.reply_text("Procesando tu solicitud... ⏳")
 
-    # AÑADE ESTOS PARÁMETROS NUEVOS:
-   ydl_opts = {
+    ydl_opts = {
         'format': 'bestaudio/best',
         'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '320'}],
         'outtmpl': 'temp_audio.mp3',
-        # Usamos la ruta relativa './' para asegurar que lo encuentre en cualquier entorno
         'cookiefile': './cookies.txt', 
-        # Es vital mantener un user_agent moderno para que YouTube crea que es un navegador real
         'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
         'quiet': True,
         'no_warnings': True,
@@ -47,7 +48,7 @@ async def download(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_audio(audio=open('temp_audio.mp3', 'rb'))
         os.remove('temp_audio.mp3')
     except Exception as e:
-        await update.message.reply_text(f"Error: {e}")
+        await update.message.reply_text(f"Error: {str(e)}")
 
 if __name__ == '__main__':
     init_db()
@@ -56,5 +57,5 @@ if __name__ == '__main__':
     app.add_handler(CommandHandler("add", authorize))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, download))
     
-    # Agregamos drop_pending_updates=True para matar conflictos
+    print("Bot iniciado y escuchando...")
     app.run_polling(drop_pending_updates=True)
