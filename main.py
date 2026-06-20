@@ -36,10 +36,13 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await query.edit_message_text("Procesando en servidores... ⏳")
     
+    # Headers optimizados para evitar el error 403
     headers = {
         "Accept": "application/json", 
         "Content-Type": "application/json",
-        "User-Agent": "CyberGrabberBot/1.0"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Origin": "https://cobalt.to",
+        "Referer": "https://cobalt.to/"
     }
     
     payload = {
@@ -52,8 +55,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     async with aiohttp.ClientSession() as session:
         try:
-            # Usamos la instancia activa con redirección permitida
-            async with session.post("https://cobalt.integrations.lol/api/json", 
+            # Instancia principal de cobalt.to con redirecciones permitidas
+            async with session.post("https://cobalt.to/api/json", 
                                     json=payload, 
                                     headers=headers, 
                                     allow_redirects=True) as resp:
@@ -70,8 +73,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     else:
                         await query.message.reply_text(f"Error de Cobalt: {data.get('text', 'No se pudo procesar')}")
                 else:
-                    await query.message.reply_text(f"Error {resp.status}: La instancia actual podría estar restringida.")
-                    
+                    await query.message.reply_text(f"Error de servidor ({resp.status}). Intenta de nuevo más tarde.")
         except Exception as e:
             await query.message.reply_text(f"Error de conexión: {str(e)}")
 
