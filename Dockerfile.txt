@@ -1,6 +1,20 @@
+# Usar una versión de Python estable
 FROM python:3.9-slim
-RUN apt-get update && apt-get install -y ffmpeg
+
+# Instalar ffmpeg (necesario para la extracción de audio)
+# Añadimos --no-install-recommends para reducir el peso de la imagen
+RUN apt-get update && apt-get install -y ffmpeg --no-install-recommends && \
+    rm -rf /var/lib/apt/lists/*
+
+# Establecer el directorio de trabajo
 WORKDIR /app
+
+# Copiar primero solo los archivos de dependencias para aprovechar la caché de Docker
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copiar el resto del código
 COPY . .
-RUN pip install -r requirements.txt
+
+# Comando para ejecutar el bot
 CMD ["python", "main.py"]
