@@ -27,7 +27,7 @@ async def handler(event):
     match = re.search(r'https?://[^\s]+', text)
     if match:
         url = match.group(0).split('&list=')[0].split('&start_radio=')[0]
-        status = await event.respond("⏳ Procesando descarga...")
+        status = await event.respond("⏳ CyberGrabber esta Procesando la descarga...")
         try:
             temp_path = os.path.join(tempfile.gettempdir(), 'video.mp4')
             with yt_dlp.YoutubeDL({'format': 'best[ext=mp4]/best', 'outtmpl': temp_path}) as ydl:
