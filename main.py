@@ -19,7 +19,6 @@ def run_server():
     server.serve_forever()
 
 client = TelegramClient('cyber_session_v4', API_ID, API_HASH)
-# Expresión regular para detectar enlaces
 URL_PATTERN = re.compile(r'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+')
 
 @client.on(events.NewMessage(incoming=True))
@@ -31,21 +30,25 @@ async def handler(event):
     if match:
         url = match.group(0)
         
-        # FILTRO ESTRICTO: Solo procesar enlaces que parezcan videos
-        if not any(x in url for x in ['watch?v=', 'shorts/', 'tiktok.com', 'instagram.com/reel/', 'youtu.be/']):
-            await event.respond("❌ Por favor, envía un enlace directo a un video (ej: youtube.com/watch?v=...).")
+        # --- LIMPIEZA AUTOMÁTICA ---
+        # Quitamos parámetros innecesarios para que yt-dlp no se confunda
+        url = url.split('&list=')[0].split('&start_radio=')[0]
+        
+        # Validamos que sea un enlace soportado
+        if not any(x in url for x in ['youtube', 'youtu.be', 'tiktok', 'instagram']):
+            await event.respond("❌ Enlace no soportado.")
             return
 
         status = await event.respond("⏳ Procesando descarga...")
         
+        # Usamos /tmp
         temp_dir = tempfile.gettempdir()
-        # Usamos un template que fuerce el nombre para localizarlo fácilmente
-        file_template = os.path.join(temp_dir, 'video_%(id)s.mp4')
+        file_template = os.path.join(temp_dir, 'video_%(id)s.%(ext)s')
         
         ydl_opts = {
             'format': 'best[ext=mp4]/best',
             'outtmpl': file_template,
-            'quiet': False 
+            'quiet': False
         }
         
         try:
@@ -59,16 +62,16 @@ async def handler(event):
                 os.remove(final_path)
                 await status.delete()
             else:
-                await status.edit("❌ Error: El archivo no se generó.")
+                await status.edit("❌ Error: El archivo no se generó correctamente.")
         except Exception as e:
-            print(f"ERROR: {str(e)}")
+            # Si esto falla, copia y pega el error que aparece en Render
+            print(f"ERROR DETALLADO: {str(e)}") 
             await status.edit(f"❌ Error: {str(e)[:100]}")
     else:
         if event.text != '/start':
             await event.respond("Pega un link válido para descargar.")
 
 async def main():
-    print("Bot iniciando...")
     await client.start(bot_token=BOT_TOKEN)
     await client.run_until_disconnected()
 
