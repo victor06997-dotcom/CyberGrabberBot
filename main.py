@@ -33,7 +33,9 @@ async def download(update: Update, context: ContextTypes.DEFAULT_TYPE):
         'format': 'bestaudio/best',
         'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '320'}],
         'outtmpl': 'temp_audio.mp3',
-        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        # Agrega esta línea apuntando a tu archivo:
+        'cookiefile': 'youtube.com_cookies.txt', 
+        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
         'quiet': True,
         'no_warnings': True,
     }
