@@ -4,7 +4,7 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 from database import init_db, is_authorized, add_user
 
-TOKEN = os.environ.get('8847599077:AAH8SlJ_OQ_ya3TOGe_19CkC3rsxpQ0GEkE')
+TOKEN = os.environ.get('BOT_TOKEN')
 ADMIN_ID = 6190912865 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
