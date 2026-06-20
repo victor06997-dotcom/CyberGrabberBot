@@ -9,7 +9,7 @@ PORT = int(os.environ.get("PORT", 8080))
 WEBHOOK_URL = os.environ.get("WEBHOOK_URL")
 ADMIN_ID = 6190912865
 
-# Lista de instancias confiables de Cobalt
+# Lista de instancias para el sistema de respaldo automático
 INSTANCIAS = [
     "https://cobalt.to/api/json",
     "https://api.cobalt.tools/api/json",
@@ -27,8 +27,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if not (is_authorized(user_id) or user_id == ADMIN_ID):
         return
+
     url = update.message.text
     context.user_data['url'] = url
+    
     keyboard = [
         [InlineKeyboardButton("🔊 Solo Audio (MP3)", callback_data='audio')],
         [InlineKeyboardButton("🎥 Video Alta Calidad (MP4)", callback_data='video')]
@@ -38,12 +40,16 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     url = context.user_data.get('url')
+    
     await query.edit_message_text("Procesando en servidores... ⏳")
     
+    # Headers con disfraz de iPhone para evitar bloqueos por origen de servidor
     headers = {
         "Accept": "application/json", 
         "Content-Type": "application/json",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Mobile/15E148 Safari/604.1",
+        "Origin": "https://cobalt.to",
+        "Referer": "https://cobalt.to/"
     }
     
     payload = {
@@ -71,10 +77,10 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                             exitoso = True
                             break
             except Exception:
-                continue # Prueba con la siguiente instancia si esta falla
-        
+                continue # Si falla, intenta con la siguiente instancia automáticamente
+
         if not exitoso:
-            await query.message.reply_text("❌ Error: Todas las instancias de descarga están saturadas o bloqueadas.")
+            await query.message.reply_text("❌ Error: Todas las instancias están bloqueadas o saturadas. Intenta más tarde.")
 
 if __name__ == '__main__':
     init_db()
@@ -82,4 +88,5 @@ if __name__ == '__main__':
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.add_handler(CallbackQueryHandler(button_callback))
+    
     app.run_webhook(listen="0.0.0.0", port=PORT, url_path=TOKEN, webhook_url=f"{WEBHOOK_URL}/{TOKEN}")
