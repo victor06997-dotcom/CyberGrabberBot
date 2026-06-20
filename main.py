@@ -2,12 +2,12 @@ import os
 import yt_dlp
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
-from database import init_db, is_authorized, add_user
+from database import init_db, is_authorized
 
 # Configuración del Bot
 TOKEN = os.environ.get('BOT_TOKEN')
 PORT = int(os.environ.get("PORT", 8080))
-WEBHOOK_URL = os.environ.get("WEBHOOK_URL") # Ejemplo: https://tu-bot.onrender.com/
+WEBHOOK_URL = os.environ.get("WEBHOOK_URL") 
 ADMIN_ID = 6190912865
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -28,24 +28,30 @@ async def download(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text("Procesando... ⏳")
     
-    # Ruta absoluta
     cookie_path = os.path.join(os.getcwd(), 'cookies.txt')
 
+    # Configuración optimizada para evadir restricciones de YouTube
     ydl_opts = {
         'format': 'bestaudio/best',
         'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '320'}],
         'outtmpl': 'temp_audio.mp3',
         'cookiefile': cookie_path,
+        'js_engine': 'node',  # FUERZA el uso de Node.js instalado en el Dockerfile
+        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     }
     
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
+        
         if os.path.exists('temp_audio.mp3'):
             await update.message.reply_audio(audio=open('temp_audio.mp3', 'rb'))
             os.remove('temp_audio.mp3')
+        else:
+            await update.message.reply_text("Error: No se pudo generar el archivo de audio.")
+            
     except Exception as e:
-        await update.message.reply_text(f"Error: {str(e)}")
+        await update.message.reply_text(f"Error técnico: {str(e)[:100]}")
 
 if __name__ == '__main__':
     init_db()
@@ -53,7 +59,6 @@ if __name__ == '__main__':
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, download))
     
-    # Usamos Webhook para que Render no se quede "cargando"
     app.run_webhook(
         listen="0.0.0.0",
         port=PORT,
