@@ -2,7 +2,7 @@ import os
 import aiohttp
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
-from database import init_db, is_authorized, add_user
+from database import init_db, is_authorized
 
 TOKEN = os.environ.get('BOT_TOKEN')
 PORT = int(os.environ.get("PORT", 8080))
@@ -36,6 +36,13 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await query.edit_message_text("Procesando en servidores... ⏳")
     
+    # IMPORTANTE: Cobalt requiere User-Agent para no bloquear la petición
+    headers = {
+        "Accept": "application/json", 
+        "Content-Type": "application/json",
+        "User-Agent": "CyberGrabberBot/1.0"
+    }
+    
     payload = {
         "url": url,
         "aFormat": "mp3" if query.data == 'audio' else None,
@@ -45,18 +52,23 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     }
 
     async with aiohttp.ClientSession() as session:
-        async with session.post("https://api.cobalt.tools/api/json", json=payload, headers={"Accept": "application/json", "Content-Type": "application/json"}) as resp:
-            data = await resp.json()
-            
-            if data.get("status") == "success":
-                file_url = data["url"]
-                if query.data == 'audio':
-                    await query.message.reply_audio(audio=file_url)
+        try:
+            async with session.post("https://api.cobalt.tools/api/json", json=payload, headers=headers) as resp:
+                data = await resp.json()
+                
+                if data.get("status") == "success":
+                    file_url = data["url"]
+                    if query.data == 'audio':
+                        await query.message.reply_audio(audio=file_url)
+                    else:
+                        await query.message.reply_video(video=file_url)
+                    await query.message.delete()
                 else:
-                    await query.message.reply_video(video=file_url)
-                await query.message.delete()
-            else:
-                await query.message.reply_text("Error: No pude procesar este enlace.")
+                    # Capturamos el texto real del error
+                    error_msg = data.get("text", "Error desconocido")
+                    await query.message.reply_text(f"Cobalt no pudo procesar el link: {error_msg}")
+        except Exception as e:
+            await query.message.reply_text(f"Error de conexión: {str(e)}")
 
 if __name__ == '__main__':
     init_db()
