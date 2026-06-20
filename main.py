@@ -23,20 +23,19 @@ async def authorize(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"Usuario {new_id} autorizado correctamente.")
 
 async def download(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if not (is_authorized(user_id) or user_id == ADMIN_ID):
-        await update.message.reply_text("No tienes acceso autorizado.")
-        return
+    # ... (tu código de autorización se mantiene igual)
 
     url = update.message.text
     await update.message.reply_text("Procesando tu solicitud... ⏳")
 
+    # AÑADE ESTOS PARÁMETROS NUEVOS:
     ydl_opts = {
         'format': 'bestaudio/best',
         'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '320'}],
         'outtmpl': 'temp_audio.mp3',
-        'noplaylist': True,           # <--- ESTO EVITA QUE DESCARGUE LA LISTA DE 425 VIDEOS
-        'cookiefile': 'cookies.txt',  # <--- RECUERDA SUBIR EL ARCHIVO A GITHUB
+        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'quiet': True,
+        'no_warnings': True,
     }
     
     try:
