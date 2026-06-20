@@ -19,46 +19,51 @@ def run_server():
     server.serve_forever()
 
 client = TelegramClient('cyber_session_v4', API_ID, API_HASH)
+# Expresión regular para detectar enlaces
 URL_PATTERN = re.compile(r'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+')
 
 @client.on(events.NewMessage(incoming=True))
 async def handler(event):
-    # Procesar solo si eres tú
     if event.sender_id != MI_ID:
         return
 
-    # Si es un link, lo descarga
     match = URL_PATTERN.search(event.text)
     if match:
         url = match.group(0)
+        
+        # FILTRO ESTRICTO: Solo procesar enlaces que parezcan videos
+        if not any(x in url for x in ['watch?v=', 'shorts/', 'tiktok.com', 'instagram.com/reel/', 'youtu.be/']):
+            await event.respond("❌ Por favor, envía un enlace directo a un video (ej: youtube.com/watch?v=...).")
+            return
+
         status = await event.respond("⏳ Procesando descarga...")
         
-        # Usamos /tmp para asegurar permisos de escritura
         temp_dir = tempfile.gettempdir()
-        file_path = os.path.join(temp_dir, 'video.mp4')
+        # Usamos un template que fuerce el nombre para localizarlo fácilmente
+        file_template = os.path.join(temp_dir, 'video_%(id)s.mp4')
         
         ydl_opts = {
             'format': 'best[ext=mp4]/best',
-            'outtmpl': file_path,
-            'quiet': False # Cambiado a False para ver errores en los logs de Render
+            'outtmpl': file_template,
+            'quiet': False 
         }
         
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                ydl.download([url])
+                info = ydl.extract_info(url, download=True)
+                final_path = ydl.prepare_filename(info)
             
-            if os.path.exists(file_path):
+            if os.path.exists(final_path):
                 await status.edit("📤 Subiendo archivo...")
-                await client.send_file(event.chat_id, file_path)
-                os.remove(file_path)
+                await client.send_file(event.chat_id, final_path)
+                os.remove(final_path)
                 await status.delete()
             else:
                 await status.edit("❌ Error: El archivo no se generó.")
         except Exception as e:
-            print(f"ERROR: {str(e)}") # Esto es vital: mira los logs de Render si falla
+            print(f"ERROR: {str(e)}")
             await status.edit(f"❌ Error: {str(e)[:100]}")
     else:
-        # Solo responde si no es un link para no saturar
         if event.text != '/start':
             await event.respond("Pega un link válido para descargar.")
 
@@ -68,7 +73,5 @@ async def main():
     await client.run_until_disconnected()
 
 if __name__ == '__main__':
-    # Iniciar servidor web en hilo separado
     threading.Thread(target=run_server, daemon=True).start()
-    # Iniciar el bot
     asyncio.run(main())
