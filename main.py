@@ -52,4 +52,6 @@ if __name__ == '__main__':
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("add", authorize))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, download))
-    app.run_polling()
+    
+    # Agregamos drop_pending_updates=True para matar conflictos
+    app.run_polling(drop_pending_updates=True)
