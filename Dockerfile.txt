@@ -1,7 +1,20 @@
 FROM python:3.9-slim
-RUN apt-get update && apt-get install -y ffmpeg --no-install-recommends && rm -rf /var/lib/apt/lists/*
+
+# 1. Instalamos ffmpeg (para audio) y nodejs (necesario para el bypass de YouTube)
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    nodejs \
+    npm \
+    --no-install-recommends && \
+    rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 COPY . .
-RUN chmod +r cookies.txt
+
+# 2. Instalamos las dependencias
 RUN pip install --no-cache-dir -r requirements.txt
+
+# 3. Aseguramos permisos
+RUN chmod +r cookies.txt
+
 CMD ["python", "main.py"]
