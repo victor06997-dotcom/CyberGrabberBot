@@ -29,12 +29,13 @@ async def download(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Procesando tu solicitud... ⏳")
 
     # AÑADE ESTOS PARÁMETROS NUEVOS:
-    ydl_opts = {
+   ydl_opts = {
         'format': 'bestaudio/best',
         'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '320'}],
         'outtmpl': 'temp_audio.mp3',
-        # Agrega esta línea apuntando a tu archivo:
-        'cookiefile': 'youtube.com_cookies.txt', 
+        # Usamos la ruta relativa './' para asegurar que lo encuentre en cualquier entorno
+        'cookiefile': './cookies.txt', 
+        # Es vital mantener un user_agent moderno para que YouTube crea que es un navegador real
         'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
         'quiet': True,
         'no_warnings': True,
