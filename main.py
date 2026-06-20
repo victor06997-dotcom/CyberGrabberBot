@@ -36,7 +36,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await query.edit_message_text("Procesando en servidores... ⏳")
     
-    # IMPORTANTE: Cobalt requiere User-Agent para no bloquear la petición
     headers = {
         "Accept": "application/json", 
         "Content-Type": "application/json",
@@ -53,7 +52,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     async with aiohttp.ClientSession() as session:
         try:
-            async with session.post("https://api.cobalt.tools/api/json", json=payload, headers=headers) as resp:
+            # URL actualizada a una instancia activa de Cobalt
+            async with session.post("https://cobalt.integrations.lol/api/json", json=payload, headers=headers) as resp:
                 data = await resp.json()
                 
                 if data.get("status") == "success":
@@ -64,7 +64,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         await query.message.reply_video(video=file_url)
                     await query.message.delete()
                 else:
-                    # Capturamos el texto real del error
                     error_msg = data.get("text", "Error desconocido")
                     await query.message.reply_text(f"Cobalt no pudo procesar el link: {error_msg}")
         except Exception as e:
