@@ -52,20 +52,26 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     async with aiohttp.ClientSession() as session:
         try:
-            # URL actualizada a una instancia activa de Cobalt
-            async with session.post("https://cobalt.integrations.lol/api/json", json=payload, headers=headers) as resp:
-                data = await resp.json()
+            # Usamos la instancia activa con redirección permitida
+            async with session.post("https://cobalt.integrations.lol/api/json", 
+                                    json=payload, 
+                                    headers=headers, 
+                                    allow_redirects=True) as resp:
                 
-                if data.get("status") == "success":
-                    file_url = data["url"]
-                    if query.data == 'audio':
-                        await query.message.reply_audio(audio=file_url)
+                if resp.status == 200:
+                    data = await resp.json()
+                    if data.get("status") == "success":
+                        file_url = data["url"]
+                        if query.data == 'audio':
+                            await query.message.reply_audio(audio=file_url)
+                        else:
+                            await query.message.reply_video(video=file_url)
+                        await query.message.delete()
                     else:
-                        await query.message.reply_video(video=file_url)
-                    await query.message.delete()
+                        await query.message.reply_text(f"Error de Cobalt: {data.get('text', 'No se pudo procesar')}")
                 else:
-                    error_msg = data.get("text", "Error desconocido")
-                    await query.message.reply_text(f"Cobalt no pudo procesar el link: {error_msg}")
+                    await query.message.reply_text(f"Error {resp.status}: La instancia actual podría estar restringida.")
+                    
         except Exception as e:
             await query.message.reply_text(f"Error de conexión: {str(e)}")
 
