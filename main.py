@@ -35,6 +35,8 @@ async def download(update: Update, context: ContextTypes.DEFAULT_TYPE):
         'format': 'bestaudio/best',
         'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '320'}],
         'outtmpl': 'temp_audio.mp3',
+        'noplaylist': True,           # <--- ESTO EVITA QUE DESCARGUE LA LISTA DE 425 VIDEOS
+        'cookiefile': 'cookies.txt',  # <--- RECUERDA SUBIR EL ARCHIVO A GITHUB
     }
     
     try:
