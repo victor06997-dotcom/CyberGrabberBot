@@ -1,33 +1,39 @@
 import os
 import yt_dlp
-from telethon import TelegramClient, events
 import re
+from telethon import TelegramClient, events
 
 API_ID = 35308373
 API_HASH = 'b89737de4be9433f9c42f50ca7514097'
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
+# ¡IMPORTANTE! Cambia esto por tu ID real. 
+# Puedes obtenerlo reenviando un mensaje tuyo a @getmyid_bot
+MI_ID = 6190912865 
 
 client = TelegramClient('bot_session', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 
-# Regex para detectar si el texto contiene una URL real
+# Patrón para detectar links
 URL_PATTERN = re.compile(r'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+')
 
 @client.on(events.NewMessage(pattern='/start'))
 async def start(event):
-    await event.respond("🤖 **CyberGrabber Activo**\nEnvíame un link para descargar.")
+    await event.respond("✅ CyberGrabber listo. Pega un link para descargar.")
 
 @client.on(events.NewMessage)
-async def downloader(event):
-    # 1. Filtro: Solo responder a mensajes que tengan una URL
-    if not event.text or not URL_PATTERN.search(event.text):
+async def handler(event):
+    # 1. Seguridad: Solo responder si el mensaje viene de TI
+    if event.sender_id != MI_ID:
         return
 
-    # 2. Filtro: Ignorar si el mensaje fue enviado por el bot mismo
-    if event.sender_id == (await client.get_me()).id:
+    # 2. Seguridad: Solo responder si es un link y no contiene comandos
+    if not event.text or event.text.startswith('/'):
+        return
+    
+    if not URL_PATTERN.search(event.text):
         return
 
     url = URL_PATTERN.search(event.text).group(0)
-    status = await event.respond("🔍 Procesando link...")
+    status = await event.respond("⏳ Procesando descarga...")
 
     ydl_opts = {
         'format': 'best',
@@ -41,12 +47,16 @@ async def downloader(event):
             info = ydl.extract_info(url, download=True)
             filename = ydl.prepare_filename(info)
 
-        await status.edit("📤 Subiendo archivo...")
+        await status.edit("📤 Subiendo...")
         await client.send_file(event.chat_id, filename)
-        os.remove(filename)
+        
+        # Limpieza
+        if os.path.exists(filename):
+            os.remove(filename)
         await status.delete()
         
     except Exception as e:
-        await status.edit(f"❌ Error al procesar:\n`{str(e)}`")
+        await status.edit(f"❌ Error: `{str(e)}`")
 
+print("Bot configurado y seguro...")
 client.run_until_disconnected()
