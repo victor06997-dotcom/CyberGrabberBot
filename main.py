@@ -3,6 +3,7 @@ import asyncio
 import threading
 import yt_dlp
 import re
+import tempfile
 from telethon import TelegramClient, events
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 
@@ -32,32 +33,42 @@ async def handler(event):
         url = match.group(0)
         status = await event.respond("⏳ Procesando descarga...")
         
+        # Usamos /tmp para asegurar permisos de escritura
+        temp_dir = tempfile.gettempdir()
+        file_path = os.path.join(temp_dir, 'video.mp4')
+        
         ydl_opts = {
             'format': 'best[ext=mp4]/best',
-            'outtmpl': 'video.mp4',
-            'quiet': True
+            'outtmpl': file_path,
+            'quiet': False # Cambiado a False para ver errores en los logs de Render
         }
         
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([url])
             
-            if os.path.exists('video.mp4'):
+            if os.path.exists(file_path):
                 await status.edit("📤 Subiendo archivo...")
-                await client.send_file(event.chat_id, 'video.mp4')
-                os.remove('video.mp4')
+                await client.send_file(event.chat_id, file_path)
+                os.remove(file_path)
                 await status.delete()
             else:
-                await status.edit("❌ Error: No se pudo crear el archivo.")
+                await status.edit("❌ Error: El archivo no se generó.")
         except Exception as e:
-            await status.edit(f"❌ Error: {str(e)}")
+            print(f"ERROR: {str(e)}") # Esto es vital: mira los logs de Render si falla
+            await status.edit(f"❌ Error: {str(e)[:100]}")
     else:
-        await event.respond("Pega un link válido para descargar.")
+        # Solo responde si no es un link para no saturar
+        if event.text != '/start':
+            await event.respond("Pega un link válido para descargar.")
 
 async def main():
+    print("Bot iniciando...")
     await client.start(bot_token=BOT_TOKEN)
     await client.run_until_disconnected()
 
 if __name__ == '__main__':
+    # Iniciar servidor web en hilo separado
     threading.Thread(target=run_server, daemon=True).start()
+    # Iniciar el bot
     asyncio.run(main())
